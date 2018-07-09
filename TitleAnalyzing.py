@@ -52,6 +52,7 @@ def findTitle(s):
 ## CONFIGURATION ##
 URL_File = "URLs.csv"
 Class_Folder = "classifier"
+Job_Folder = "jobs"
 
 ## MAIN ##
 listTitle = list()
@@ -139,6 +140,8 @@ if False:
 ## classification part ###
 print "\nClassification:"
 ClassFiles = os.listdir(Class_Folder)
+sumCounter = 0
+classH = {}
 for ClassF in ClassFiles:
 	if ClassF.endswith(".csv"):
 		counter = 0
@@ -151,5 +154,25 @@ for ClassF in ClassFiles:
 				counter = counter+1
 		print "--> Counter:",counter
 		print "---"
+		classH[className] = counter
+		sumCounter += counter
 		
+## job relation ##
+print "\nJob prediction:"
+JobFiles = os.listdir(Job_Folder)
+for JobF in JobFiles:
+	if JobF.endswith(".csv"):
+		counter = 0
+		jobName = JobF[:-4]
+		jobClasses = np.genfromtxt(Job_Folder+"/"+JobF, delimiter=',', dtype="str")
+		for jClass in jobClasses:
+			counter = counter + classH[jClass]
+		percCounter = 100*counter/sumCounter
+		if percCounter > 10:
+			stars = ""
+			for i in range(len(jobName),15):
+				stars = stars + " "
+			for i in range(0,percCounter,5):
+				stars = stars + "*"
+			print jobName,":", stars, str(percCounter)+"%"
 
