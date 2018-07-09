@@ -51,12 +51,13 @@ def findTitle(s):
 
 ## CONFIGURATION ##
 URL_File = "URLs.csv"
+Class_Folder = "classifier"
 
 ## MAIN ##
 listTitle = list()
 listUrl = list()
 
-## Read CSV file and get
+## Read URL CSV file and get
 #	- Title (column 3)
 #	- URL (column 4)
 f = open(URL_File, 'rb')
@@ -81,7 +82,7 @@ length = len(listTitle)
 print "Length: ", length
 
 #Create Heatmap of Ratio between words of Title
-if True:# Temporarily disabled
+if False:# Temporarily disabled
 	plt.figure(1)
 
 	compArr = np.zeros((length, length))
@@ -96,38 +97,59 @@ if True:# Temporarily disabled
 
 ##Clustering
 Words = re.findall('\w+', ' '.join(listTitle).lower())
-Words = list(set(Words))
+
+if True: #Apply ignore list
+	print "Apply ignore list"
+	ignoreWords = np.genfromtxt("ignore.csv", delimiter=',', dtype="str")
+	Words = [w for w in Words if w not in ignoreWords]
+
+UniqueWords = list(set(Words))
 CounterArr = np.zeros((length, len(Words)))
 log("Counter array shape (titles, unique words) = "+str(CounterArr.shape))
 for i, title in enumerate(listTitle):
 	titleWords = re.findall('\w+', title.lower())
 	#log("TitleWords: "+str(titleWords))
 	for word in titleWords:	
-		idx = Words.index(word)
-		CounterArr[i, idx] += 1
-		#log("Index ("+word+")= "+str(idx))
+		if word in UniqueWords:
+			idx = UniqueWords.index(word)
+			CounterArr[i, idx] += 1
 
 
 WordCounter = np.sum(CounterArr, axis=0, dtype=int)
 #Sort
 SortIdx = np.argsort(WordCounter)[::-1]
-log("Most used words: "+str( [Words[i] for i in SortIdx[0:10]] ))
+log("Most (#10) used UniqueWords: "+str( [UniqueWords[i] for i in SortIdx[0:10]] ))
 CounterArr = np.asarray([CounterArr[:,i] for i in SortIdx], dtype=int).T
-#limit words to words that come more than 1 times
+#limit words to words that come more than n times
 QualityWordLimit = 3
 Indexes_QWords = np.array(np.where(WordCounter > QualityWordLimit), dtype=int)[0,:]
-QualityWords = [Words[i] for i in Indexes_QWords]
+QualityWords = [UniqueWords[i] for i in Indexes_QWords]
 QualityWordCounter = [WordCounter[i] for i in Indexes_QWords]
 QCounterArr = np.asarray([CounterArr[:,i] for i in Indexes_QWords], dtype=int).T
 
-plt.figure(2)
-plt.imshow(QCounterArr, cmap='hot_r', interpolation='nearest')
-plt.title("Show amount of word count where words > "+str(QualityWordLimit))
-plt.xlabel("Quality words index")
-plt.ylabel("Title index")
-plt.ion()
-plt.show()
+if False:
+	plt.figure(2)
+	plt.imshow(QCounterArr, cmap='hot_r', interpolation='nearest')
+	plt.title("Show amount of word count where words > "+str(QualityWordLimit))
+	plt.xlabel("Quality words index")
+	plt.ylabel("Title index")
+	plt.ion()
+	plt.show()
 
-
-
+## classification part ###
+print "\nClassification:"
+ClassFiles = os.listdir(Class_Folder)
+for ClassF in ClassFiles:
+	if ClassF.endswith(".csv"):
+		counter = 0
+		#print "Read:",Class_Folder+"/"+ClassF
+		className = ClassF[:-4]
+		classWords = np.genfromtxt(Class_Folder+"/"+ClassF, delimiter=',', dtype="str")
+		print "Class("+className+"):", len(classWords), "words"
+		for word in Words:
+			if word in classWords:
+				counter = counter+1
+		print "--> Counter:",counter
+		print "---"
+		
 
